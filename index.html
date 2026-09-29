@@ -2414,6 +2414,148 @@ detectAllSignals=function(c,sym,name,tf){
 setTimeout(ui,700);
 })();
 </script>
+<script>
+(function(){
+const HC={};let prevW=null,van=[],busy=0;
+async function J(u){try{const r=await fetch(u);return r.ok?await r.json():null}catch(e){return null}}
+async function S(p){for(const h of BINANCE_HOSTS){const j=await J(h+p);if(j)return j}return null}
+async function hist(s,tf,N){
+  const key=s+tf;if(HC[key]&&Date.now()-HC[key].t<3e5)return HC[key].c;
+  let o=[],e=null;
+  while(o.length<N){const l=Math.min(1000,N-o.length),r=await S('/api/v3/klines?symbol='+s+'&interval='+tf+'&limit='+l+(e?'&endTime='+e:''));
+    if(!r||!r.length)break;
+    o=r.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]})).concat(o);
+    e=r[0][0]-1;if(r.length<l)break}
+  HC[key]={t:Date.now(),c:o};return o;
+}
+async function book(s){
+  const d=await S('/api/v3/depth?symbol='+s+'&limit=1000');if(!d)return null;
+  const B=d.bids.map(x=>[+x[0],+x[0]*+x[1]]),A=d.asks.map(x=>[+x[0],+x[0]*+x[1]]),mid=(B[0][0]+A[0][0])/2;
+  const inr=a=>a.filter(x=>Math.abs(x[0]-mid)/mid<=.015);
+  const med=a=>{const v=a.map(x=>x[1]).sort((p,q)=>p-q);return v[Math.floor(v.length/2)]||1};
+  const top=a=>{const m=med(a);return a.filter(x=>x[1]>5*m).sort((p,q)=>q[1]-p[1]).slice(0,3)};
+  const sum=(a,f)=>a.filter(f).reduce((s,x)=>s+x[1],0);
+  return {mid,bw:top(inr(B)),aw:top(inr(A)),b1:sum(B,x=>x[0]>=mid*.99),a1:sum(A,x=>x[0]<=mid*1.01),up:sum(A,x=>x[0]<=mid*1.005),dn:sum(B,x=>x[0]>=mid*.995)};
+}
+function track(bk){
+  const cur={};
+  bk.bw.forEach(x=>cur['b'+x[0]]=x[1]);bk.aw.forEach(x=>cur['a'+x[0]]=x[1]);
+  if(prevW&&prevW.s===currentSym){
+    for(const k in prevW.w){const side=k[0],p=+k.slice(1),now=cur[k]||0;
+      if(now<prevW.w[k]*.25&&Math.abs(p-bk.mid)/bk.mid>.0005&&(side==='a'?bk.mid<p:bk.mid>p))van.push({t:Date.now(),s:currentSym,p,u:prevW.w[k],side})}
+  }
+  prevW={s:currentSym,w:cur};van=van.filter(v=>Date.now()-v.t<6e5);
+}
+async function deriv(s){
+  const f='https://fapi.binance.com';
+  const [pi,oi,ls]=await Promise.all([J(f+'/fapi/v1/premiumIndex?symbol='+s),J(f+'/futures/data/openInterestHist?symbol='+s+'&period=1h&limit=5'),J(f+'/futures/data/globalLongShortAccountRatio?symbol='+s+'&period=1h&limit=1')]);
+  return {fund:pi?+pi.lastFundingRate*100:null,oiCh:oi&&oi.length>1?(+oi[oi.length-1].sumOpenInterestValue/+oi[0].sumOpenInterestValue-1)*100:null,ls:ls&&ls[0]?+ls[0].longShortRatio:null};
+}
+function lvl(c,P){
+  const n=c.length,at=atrCalc(c,14).filter(Boolean).slice(-100),A=at.reduce((a,b)=>a+b,0)/at.length,hw=.5*A,lo=P-hw,hi=P+hw,av=c.reduce((s,x)=>s+x.volume,0)/n;
+  const R={sup:[],res:[]};let tv=0,allv=0,mn=1/0,mx=-1/0;
+  for(let i=0;i<n;i++){
+    const x=c[i];allv+=x.volume;mn=Math.min(mn,x.low);mx=Math.max(mx,x.high);
+    if(x.close>=lo&&x.close<=hi)tv+=x.volume;
+    if(i<1||i>=n-12||!(x.low<=hi&&x.high>=lo))continue;
+    const p=c[i-1];if(p.low<=hi&&p.high>=lo)continue;
+    const up=p.close>hi,dn=p.close<lo;if(!up&&!dn)continue;
+    const e=c[i+12].close,o=up?(e>P+hw?'held':e<P-hw?'broke':'chop'):(e<P-hw?'held':e>P+hw?'broke':'chop');
+    R[up?'sup':'res'].push({t:x.time,o,v:x.volume/av});
+  }
+  return {R,A,share:tv/allv,exp:2*hw/(mx-mn)};
+}
+function pools(c,P){
+  const sw=detectSwings(c.slice(-600),5),res=[];
+  [[sw.highs,'H'],[sw.lows,'L']].forEach(([arr,t])=>{
+    const cl=[];arr.forEach(s=>{const g=cl.find(x=>Math.abs(x.p-s.price)/x.p<.0015);if(g){g.p=(g.p*g.n+s.price)/(g.n+1);g.n++}else cl.push({p:s.price,n:1,t})});
+    cl.filter(x=>x.n>=2).forEach(x=>res.push(x));
+  });
+  return res.sort((a,b)=>Math.abs(a.p-P)-Math.abs(b.p-P));
+}
+const kv=(k,v,c)=>'<div class="kv"><span class="k">'+k+'</span><span class="v '+(c||'')+'">'+v+'</span></div>';
+const pct=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+
+async function refresh(){
+  if(busy)return;busy=1;const s=currentSym,out=$('shOut');
+  $('shStatus').innerHTML='<span class="loader"></span>Analyzing '+currentName+'…';
+  try{
+    const [c,bk,dv]=await Promise.all([hist(s,'1h',5000),book(s),deriv(s)]);
+    if(!c||c.length<300||!bk){out.innerHTML='<div class="card">Data unavailable. Check connection.</div>';busy=0;$('shStatus').textContent='';return}
+    track(bk);
+    const n=c.length,at=atrCalc(c,14),A=at[n-1]||at.filter(Boolean).pop(),inp=parseFloat($('shPrice').value),cur=bk.mid,P=isFinite(inp)&&inp>0?inp:cur;
+    const vz=i=>{const v=c.slice(i-50,i).map(x=>x.volume),m=v.reduce((a,b)=>a+b,0)/50,sd=Math.sqrt(v.reduce((a,b)=>a+(b-m)*(b-m),0)/50)||1;return (c[i].volume-m)/sd};
+    /* manipulation flags */
+    const F=[],add=(p,t)=>F.push({p,t});
+    for(let i=n-6;i<n;i++){const x=c[i],uw=x.high-Math.max(x.open,x.close),lw=Math.min(x.open,x.close)-x.low;
+      if(Math.max(uw,lw)>2.2*A&&vz(i)>1.5){add(15,'Stop-hunt wick: a '+(uw>lw?'spike up':'spike down')+' with heavy volume, then price snapped back');break}}
+    const z=vz(n-1);if(z>3)add(10,'Volume spike ('+z.toFixed(1)+' std above normal)');
+    const mv=c[n-1].close-c[n-4].close,av3=(c[n-1].volume+c[n-2].volume+c[n-3].volume)/3,av50=c.slice(-53,-3).reduce((a,x)=>a+x.volume,0)/50;
+    if(Math.abs(mv)>2.5*A&&av3<.8*av50)add(15,'Big move on THIN volume — easy to push around');
+    if(Math.abs(c[n-1].close-c[n-13].close)>6*A)add(15,'Very fast pump/dump in the last 12 hours');
+    if(dv.fund!=null){if(Math.abs(dv.fund)>.05)add(15,'Extreme funding '+dv.fund.toFixed(3)+'% — crowd is heavily '+(dv.fund>0?'long':'short'));else if(Math.abs(dv.fund)>.03)add(8,'High funding '+dv.fund.toFixed(3)+'%')}
+    if(dv.ls!=null&&(dv.ls>2.2||dv.ls<.55))add(10,'Crowd very one-sided (long/short ratio '+dv.ls.toFixed(2)+') — the crowd is often wrong at extremes');
+    if(dv.oiCh!=null&&Math.abs(dv.oiCh)>8&&Math.abs(c[n-1].close/c[n-5].close-1)<.01)add(10,'Open interest '+(dv.oiCh>0?'+':'')+dv.oiCh.toFixed(1)+'% but price flat — positions building for a sharp move');
+    const vv=van.filter(v=>v.s===s);if(vv.length>=2)add(15,vv.length+' large order-book walls vanished without being traded (possible spoofing)');
+    const imb=bk.b1/bk.a1;if(imb>2.5||imb<.4)add(5,'Order book very one-sided ('+imb.toFixed(1)+'× bids vs asks) — can be fake support/resistance');
+    const PL=pools(c,cur),pa=PL.filter(x=>x.t==='H'&&x.p>cur),pb=PL.filter(x=>x.t==='L'&&x.p<cur);
+    if((pa[0]&&pa[0].p-cur<A)||(pb[0]&&cur-pb[0].p<A))add(10,'Stop cluster right next to price — a sweep is likely');
+    const now=Date.now(),l15=liqs.filter(l=>l.sym===s&&now-l.time<9e5).reduce((a,l)=>a+l.usd,0);
+    if(oiUSDGlobal&&l15/oiUSDGlobal>.002)add(10,'Liquidation wave: '+fmtUSD(l15)+' in 15 min');
+    const sc=Math.min(100,F.reduce((a,f)=>a+f.p,0)),lv=sc<25?['CALM','bull']:sc<55?['CAUTION','neut']:['DANGER','bear'];
+    let h='<div class="verdict '+lv[1]+'">MANIPULATION RISK '+sc+'/100 · '+lv[0]+'<small>'+currentName+' · these are warning signs, not proof</small></div>';
+    h+='<div class="card"><h4>◆ Warning signs right now</h4>'+(F.length?F.map(f=>'<div class="sig"><div class="dot '+(f.p>=15?'r':'y')+'"></div><div class="body"><b>'+f.t+'</b></div></div>').join(''):'<div style="color:#26a69a;font-size:11px">No manipulation signs detected right now.</div>')+'</div>';
+    /* protection */
+    const R=[];
+    if(sc>=55)R.push('No new entries now. Wait for a candle to CLOSE back inside the range after a sweep.');
+    else if(sc>=25)R.push('Trade half your normal size until the warnings clear.');
+    if(F.some(f=>f.t.startsWith('Big move on THIN')))R.push('Use limit orders only. Market orders get bad fills on thin liquidity.');
+    if(dv.fund>.03)R.push('Crowded longs: do not chase longs. A long squeeze (drop) is the risk.');
+    if(dv.fund<-.03)R.push('Crowded shorts: do not chase shorts. A short squeeze (spike up) is the risk.');
+    if(pb[0])R.push('Long stop idea: below '+fmt(pb[0].p-.5*A)+' (beyond the stop pool at '+fmt(pb[0].p)+'), not at it.');
+    if(pa[0])R.push('Short stop idea: above '+fmt(pa[0].p+.5*A)+' (beyond the stop pool at '+fmt(pa[0].p)+'), not at it.');
+    R.push('Risk 1% or less per trade. Never move a stop further away.');
+    h+='<div class="card"><h4>◆ How to protect yourself</h4>'+R.map(x=>'<div class="sig"><div class="dot g"></div><div class="body"><b>'+x+'</b></div></div>').join('')+'</div>';
+    /* level memory */
+    const L=lvl(c,P),su=L.R.sup,re=L.R.res,st=a=>a.length?a.length+' times — held '+pct(a.filter(x=>x.o==='held').length,a.length)+' · broke '+pct(a.filter(x=>x.o==='broke').length,a.length)+' · chop '+pct(a.filter(x=>x.o==='chop').length,a.length):'never tested';
+    const all=su.concat(re).sort((a,b)=>b.t-a.t).slice(0,5);
+    h+='<div class="card"><h4>◆ History at '+fmt(P)+' (last '+Math.round(n/24)+' days, 1h)</h4>'+
+      kv('Came from ABOVE (support test)',st(su))+kv('Came from BELOW (resistance test)',st(re))+
+      kv('Avg volume on touch',(su.concat(re).reduce((a,x)=>a+x.v,0)/(su.length+re.length||1)).toFixed(2)+'× normal')+
+      kv('Volume traded near this price',(L.share*100).toFixed(1)+'% of all',L.share>2.5*L.exp?'warn':'')+
+      (L.share>2.5*L.exp?kv('Type','HIGH-VOLUME NODE — strong memory level','warn'):'')+
+      '<div style="color:#f0b90b;font-size:10px;margin:8px 0 4px;font-weight:700">LAST REACTIONS</div>'+
+      (all.length?all.map(x=>kv(new Date(x.t*1000).toLocaleDateString()+' '+new Date(x.t*1000).getUTCHours()+':00 UTC',x.o.toUpperCase()+' · vol '+x.v.toFixed(1)+'×',x.o==='held'?'pos':x.o==='broke'?'neg':'')).join(''):'<div style="color:#848e9c;font-size:11px">No clean touches in this history.</div>')+
+      '<div style="color:#848e9c;font-size:10px;margin-top:6px">Held = price moved away from the level 12 hours later. Type a price above to check any level.</div></div>';
+    /* liquidity */
+    const w=(a,t)=>a.length?a.map(x=>kv(t+' wall @ '+fmt(x[0])+' ('+((x[0]/bk.mid-1)*100).toFixed(2)+'%)',fmtUSD(x[1]))).join(''):kv(t+' walls','none big');
+    h+='<div class="card"><h4>◆ Liquidity now (order book ±1%)</h4>'+
+      kv('Bids (buy orders)',fmtUSD(bk.b1),'pos')+kv('Asks (sell orders)',fmtUSD(bk.a1),'neg')+
+      kv('Cost to push price +0.5%',fmtUSD(bk.up))+kv('Cost to push price −0.5%',fmtUSD(bk.dn))+
+      (bk.up<3*bk.dn||bk.dn<3*bk.up?'':'')+w(bk.bw,'Bid')+w(bk.aw,'Ask')+
+      kv('Vanished walls (10 min)',String(vv.length),vv.length>=2?'neg':'')+'</div>';
+    h+='<div class="card"><h4>◆ Stop clusters (where stops likely sit)</h4>'+
+      pa.slice(0,2).map(x=>kv('Above — equal highs ×'+x.n+' @ '+fmt(x.p),((x.p/cur-1)*100).toFixed(2)+'%','neg')).join('')+
+      pb.slice(0,2).map(x=>kv('Below — equal lows ×'+x.n+' @ '+fmt(x.p),((x.p/cur-1)*100).toFixed(2)+'%','pos')).join('')+
+      (pa.length||pb.length?'':'<div style="color:#848e9c;font-size:11px">No clear clusters.</div>')+'</div>';
+    h+='<div class="card"><h4>◆ Futures crowd</h4>'+kv('Funding (8h)',dv.fund==null?'—':dv.fund.toFixed(4)+'%')+kv('Long/Short accounts',dv.ls==null?'—':dv.ls.toFixed(2))+kv('Open interest, 4h change',dv.oiCh==null?'—':(dv.oiCh>=0?'+':'')+dv.oiCh.toFixed(1)+'%')+kv('Liquidations (15m)',fmtUSD(l15))+'</div>';
+    out.innerHTML=h;$('shStatus').textContent='Updated '+new Date().toLocaleTimeString();
+  }catch(e){out.innerHTML='<div class="card" style="color:#ef5350">Error: '+e.message+'</div>'}
+  busy=0;
+}
+function init(){
+  const bar=$('tabBar'),b=document.createElement('button');
+  b.className='tab';b.dataset.t='shield';b.textContent='SHIELD';
+  bar.insertBefore(b,bar.querySelector('.tab[data-t="alerts"]')||null);
+  b.onclick=()=>{if(activeTab==='shield'&&$('panel').classList.contains('on')){closePanel();return}openTab('shield');refresh()};
+  const p=document.createElement('div');p.className='pane';p.id='p-shield';
+  p.innerHTML='<div class="card"><h4>◆ Manipulation Shield</h4><input class="inp" id="shPrice" type="number" step="any" placeholder="Price to study (empty = current price)"><button class="btn primary" id="shRun">ANALYZE</button> <span id="shStatus" style="color:#848e9c;font-size:11px"></span></div><div id="shOut"></div>';
+  $('panelContent').appendChild(p);$('shRun').onclick=refresh;
+  setInterval(()=>{if(activeTab==='shield')refresh()},15000);
+}
+setTimeout(init,700);
+})();
+</script>
 
 </body>
 </html>
