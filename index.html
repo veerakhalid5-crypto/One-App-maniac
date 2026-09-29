@@ -2273,5 +2273,147 @@ function boot(){
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else setTimeout(boot, 30);
 </script>
+  <script>
+(function(){
+const OPTS=[['pCandle','Candlestick patterns (engulfing, hammer, stars)'],['pHS','Head & Shoulders / Inverse'],['pTri','Triangles & wedges breakout'],['pFlag','Bull / bear flags'],['pRange','Range breakout'],['pCross','EMA / Golden / Death cross'],['pDiv','RSI divergence'],['pVol','Volume spike'],['pAMD','AMD: Accumulation / Manipulation / Distribution']];
+let cfg={};try{cfg=JSON.parse(localStorage.getItem('qcity_sig2')||'{}')}catch(e){}
+const on=k=>cfg[k]!==false;
+
+function ui(){
+  const btn=document.querySelector('#p-signals .btn.primary'); if(!btn) return;
+  const card=btn.closest('.card'), box=document.createElement('div');
+  box.innerHTML='<h4 style="margin:10px 0 4px">◆ More Pattern Alerts</h4>'+OPTS.map(([k,t])=>'<div class="tglRow"><span>'+t+'</span><input type="checkbox" data-k="'+k+'" '+(on(k)?'checked':'')+'></div>').join('');
+  box.querySelectorAll('input').forEach(i=>i.onchange=()=>{cfg[i.dataset.k]=i.checked;try{localStorage.setItem('qcity_sig2',JSON.stringify(cfg))}catch(e){}});
+  card.insertBefore(box,btn.parentNode);
+}
+
+const mx=(c,a,b)=>Math.max(...c.slice(a,b+1).map(x=>x.high));
+const mn=(c,a,b)=>Math.min(...c.slice(a,b+1).map(x=>x.low));
+const old=detectAllSignals;
+
+detectAllSignals=function(c,sym,name,tf){
+  const out=old(c,sym,name,tf); if(c.length<60) return out;
+  const n=c.length,i=n-2,cl=c.map(x=>x.close),atrA=atrCalc(c,14),a=atrA[i]||0; if(!a) return out;
+  const f=fmt;
+  const add=(type,dir,detail,idx)=>out.push({sym,name,tf,type,dir,time:c[idx==null?i:idx].time*1000,detail,price:cl[i]});
+  const sw=detectSwings(c,4);
+
+  /* CANDLESTICKS */
+  if(on('pCandle')){
+    const k=c[i],p=c[i-1],q=c[i-2],b=Math.abs(k.close-k.open),pb=Math.abs(p.close-p.open),qb=Math.abs(q.close-q.open);
+    const uw=k.high-Math.max(k.open,k.close),lw=Math.min(k.open,k.close)-k.low,dn=cl[i-5]>cl[i],upT=cl[i-5]<cl[i];
+    if(p.close<p.open&&k.close>k.open&&k.close>=p.open&&k.open<=p.close&&b>pb) add('BULL ENGULFING','up','Bullish engulfing @ '+f(k.close));
+    if(p.close>p.open&&k.close<k.open&&k.close<=p.open&&k.open>=p.close&&b>pb) add('BEAR ENGULFING','down','Bearish engulfing @ '+f(k.close));
+    if(dn&&b>0&&lw>2*b&&uw<b) add('HAMMER','up','Hammer after drop @ '+f(k.close));
+    if(upT&&b>0&&uw>2*b&&lw<b) add('SHOOTING STAR','down','Shooting star after rise @ '+f(k.close));
+    if(q.close<q.open&&qb>a&&pb<qb*.4&&k.close>k.open&&k.close>(q.open+q.close)/2) add('MORNING STAR','up','Morning star reversal @ '+f(k.close));
+    if(q.close>q.open&&qb>a&&pb<qb*.4&&k.close<k.open&&k.close<(q.open+q.close)/2) add('EVENING STAR','down','Evening star reversal @ '+f(k.close));
+  }
+
+  /* HEAD & SHOULDERS */
+  if(on('pHS')){
+    if(sw.highs.length>=3){
+      const [h1,h2,h3]=sw.highs.slice(-3);
+      if(h2.price>h1.price&&h2.price>h3.price&&Math.abs(h1.price-h3.price)/h2.price<.03){
+        const neck=(mn(c,h1.i,h2.i)+mn(c,h2.i,h3.i))/2;
+        if(cl[i]<neck&&cl[i-1]>=neck) add('HEAD & SHOULDERS','down','Neckline broken @ '+f(neck));
+      }
+    }
+    if(sw.lows.length>=3){
+      const [l1,l2,l3]=sw.lows.slice(-3);
+      if(l2.price<l1.price&&l2.price<l3.price&&Math.abs(l1.price-l3.price)/l2.price<.03){
+        const neck=(mx(c,l1.i,l2.i)+mx(c,l2.i,l3.i))/2;
+        if(cl[i]>neck&&cl[i-1]<=neck) add('INV H&S','up','Neckline broken @ '+f(neck));
+      }
+    }
+  }
+
+  /* TRIANGLES & WEDGES */
+  if(on('pTri')){
+    const H=sw.highs.filter(h=>h.i>n-90).slice(-2),L=sw.lows.filter(l=>l.i>n-90).slice(-2);
+    if(H.length===2&&L.length===2){
+      const su=(H[1].price-H[0].price)/(H[1].i-H[0].i),sl=(L[1].price-L[0].price)/(L[1].i-L[0].i),fl=cl[i]*.0003;
+      const U=j=>H[0].price+su*(j-H[0].i),D=j=>L[0].price+sl*(j-L[0].i),st=Math.min(H[0].i,L[0].i);
+      if(U(i)-D(i)>0&&U(i)-D(i)<U(st)-D(st)){
+        let shape=null;
+        if(Math.abs(su)<fl&&sl>fl) shape='Ascending triangle';
+        else if(Math.abs(sl)<fl&&su<-fl) shape='Descending triangle';
+        else if(su<-fl&&sl>fl) shape='Symmetrical triangle';
+        else if(su>fl&&sl>su) shape='Rising wedge';
+        else if(su<-fl&&sl<-fl&&su<sl) shape='Falling wedge';
+        if(shape){
+          if(cl[i]>U(i)&&cl[i-1]<=U(i-1)) add('BREAKOUT ↑','up',shape+' broken up @ '+f(U(i)));
+          else if(cl[i]<D(i)&&cl[i-1]>=D(i-1)) add('BREAKOUT ↓','down',shape+' broken down @ '+f(D(i)));
+        }
+      }
+    }
+  }
+
+  /* FLAGS */
+  if(on('pFlag')){
+    const pole=cl[n-9]-cl[n-19],hi=mx(c,n-9,n-3),lo=mn(c,n-9,n-3);
+    if(Math.abs(pole)>5*a&&(hi-lo)<Math.abs(pole)*.5){
+      if(pole>0&&cl[i]>hi&&cl[i-1]<=hi) add('BULL FLAG','up','Flag breakout above '+f(hi));
+      if(pole<0&&cl[i]<lo&&cl[i-1]>=lo) add('BEAR FLAG','down','Flag breakdown below '+f(lo));
+    }
+  }
+
+  /* RANGE BREAKOUT */
+  if(on('pRange')){
+    const hi=mx(c,n-24,n-4),lo=mn(c,n-24,n-4);
+    if(cl[i]>hi&&cl[i-1]<=hi) add('RANGE BREAK','up','Broke 20-bar high '+f(hi));
+    else if(cl[i]<lo&&cl[i-1]>=lo) add('RANGE BREAK','down','Broke 20-bar low '+f(lo));
+  }
+
+  /* EMA CROSSES */
+  if(on('pCross')){
+    [[20,50,'EMA 20/50'],[50,200,'EMA 50/200']].forEach(([x,y,t])=>{
+      const A=ema(cl,x),B=ema(cl,y);
+      if(A[i]==null||B[i]==null||A[i-1]==null||B[i-1]==null) return;
+      if(A[i]>B[i]&&A[i-1]<=B[i-1]) add(x===50?'GOLDEN CROSS':'EMA CROSS ↑','up',t+' bullish cross');
+      else if(A[i]<B[i]&&A[i-1]>=B[i-1]) add(x===50?'DEATH CROSS':'EMA CROSS ↓','down',t+' bearish cross');
+    });
+  }
+
+  /* RSI DIVERGENCE */
+  if(on('pDiv')){
+    const R=rsiCalc(cl,14),s3=detectSwings(c,3),[l1,l2]=s3.lows.slice(-2),[h1,h2]=s3.highs.slice(-2);
+    if(l1&&l2&&l2.i>=n-9&&R[l1.i]!=null&&R[l2.i]!=null&&l2.price<l1.price&&R[l2.i]>R[l1.i]) add('RSI DIVERGENCE','up','Bullish: lower low, higher RSI',l2.i);
+    if(h1&&h2&&h2.i>=n-9&&R[h1.i]!=null&&R[h2.i]!=null&&h2.price>h1.price&&R[h2.i]<R[h1.i]) add('RSI DIVERGENCE','down','Bearish: higher high, lower RSI',h2.i);
+  }
+
+  /* VOLUME SPIKE */
+  if(on('pVol')){
+    let s=0; for(let j=i-20;j<i;j++) s+=c[j].volume;
+    const r=c[i].volume/(s/20);
+    if(r>=3) add('VOL SPIKE',c[i].close>=c[i].open?'up':'down',r.toFixed(1)+'× average volume');
+  }
+
+  /* AMD: ACCUMULATION → MANIPULATION → DISTRIBUTION */
+  if(on('pAMD')){
+    const acc=e=>{ if(e<20||!atrA[e]) return null; const hi=mx(c,e-19,e),lo=mn(c,e-19,e); return (hi-lo)<6*atrA[e]?{hi,lo}:null; };
+    const now=acc(i),prev=acc(i-1);
+    if(now&&!prev) add('AMD · ACCUMULATION','flat','Tight range '+f(now.lo)+' – '+f(now.hi)+' — watch for a sweep');
+    const R0=acc(i-7);
+    if(R0){
+      let bm=-1,bd=null;
+      for(let m=i-6;m<=i;m++){
+        if(c[m].low<R0.lo-.2*a&&cl[m]>R0.lo){bm=m;bd='up';}
+        else if(c[m].high>R0.hi+.2*a&&cl[m]<R0.hi){bm=m;bd='down';}
+      }
+      if(bm>=i-1) add('AMD · MANIPULATION',bd,(bd==='up'?'Sweep of range low @ '+f(R0.lo):'Sweep of range high @ '+f(R0.hi))+' — reversal setup',bm);
+      else if(bm>=0){
+        if(bd==='up'&&cl[i]>R0.hi&&cl[i-1]<=R0.hi) add('AMD · DISTRIBUTION','up','Markup after sweep — range high broken '+f(R0.hi));
+        if(bd==='down'&&cl[i]<R0.lo&&cl[i-1]>=R0.lo) add('AMD · DISTRIBUTION','down','Markdown after sweep — range low broken '+f(R0.lo));
+      }
+    }
+  }
+  return out;
+};
+
+setTimeout(ui,700);
+})();
+</script>
+
 </body>
 </html>
