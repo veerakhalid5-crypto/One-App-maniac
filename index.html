@@ -200,6 +200,12 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
   #panel{max-height:64vh}
   #wlDrawer{width:160px}
 }
+details.sec{background:#131722;border:1px solid #1e2329;border-radius:6px;margin-bottom:8px}
+details.sec>summary{padding:10px 12px;font-size:11px;font-weight:700;letter-spacing:1px;color:#f0b90b;cursor:pointer;list-style:none}
+details.sec>summary::before{content:"▸ ";color:#848e9c}
+details.sec[open]>summary::before{content:"▾ "}
+details.sec>.card{margin:0 8px 8px}
+#worldCv{width:100%;height:auto;background:#0b0e11;border:1px solid #1e2329;border-radius:6px;display:block}
 </style>
 </head>
 <body>
@@ -237,6 +243,8 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
     <div id="chartTopBar">
       <button class="chartBtn" onclick="toggleWL()">☰ 50 COINS</button>
       <button class="chartBtn" id="liqBtn" onclick="toggleLiqTap()">◎ LIQ MAP</button>
+      <button class="chartBtn" id="bbBtn">BB</button>
+      <button class="chartBtn" id="stBtn">ST</button>
     </div>
     <div id="chartLegend">
       <span class="l1">EMA 20</span>
@@ -254,18 +262,15 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
       <button id="panelClose" onclick="closePanel()">✕</button>
     </div>
     <div id="panelContent">
+
       <div class="pane on" id="p-ai">
         <div id="aiVerdict" class="verdict neut">Analyzing…</div>
         <div class="card"><h4>Confluence Reasons</h4><div id="aiReasons"></div></div>
         <div class="card"><h4>Trade Plan</h4><div id="aiPlan"></div></div>
       </div>
+
       <div class="pane" id="p-analysis"><div class="card"><h4>All Indicators</h4><div id="analysisList"></div></div></div>
-      <div class="pane" id="p-structure">
-        <div class="card"><h4>◆ Market Structure</h4><div id="structList"></div></div>
-        <div class="card"><h4>◆ Trendline Breaks & Retests</h4><div id="trendlineList"></div></div>
-        <div class="card"><h4>◆ Support / Resistance Clusters</h4><div id="srList"></div></div>
-        <div class="card"><h4>◆ Liquidity Grabs</h4><div id="liquidityList"></div></div>
-      </div>
+
       <div class="pane" id="p-patterns">
         <div class="card">
           <h4>◆ W / M Pattern Scanner — ALL TIMEFRAMES</h4>
@@ -282,6 +287,60 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
           <div id="patternsOut"><div style="color:#848e9c;font-size:11px;padding:8px">Tap SCAN to run full scan.</div></div>
         </div>
       </div>
+
+      <!-- PRO TOOLS: Structure, Order Flow, SMC, ICT, Wyckoff, CRT, Supertrend, Ichimoku, Pivot, Fib, Volume, CVD -->
+      <div class="pane" id="p-pro">
+        <details class="sec" open><summary>STRUCTURE</summary>
+          <div class="card"><h4>◆ Market Structure</h4><div id="structList"></div></div>
+          <div class="card"><h4>◆ Trendline Breaks & Retests</h4><div id="trendlineList"></div></div>
+          <div class="card"><h4>◆ Support / Resistance Clusters</h4><div id="srList"></div></div>
+          <div class="card"><h4>◆ Liquidity Grabs</h4><div id="liquidityList"></div></div>
+        </details>
+        <details class="sec" open><summary>ORDER FLOW</summary>
+          <div class="card"><h4>Buy / Sell Pressure</h4><div id="ofSummary"></div></div>
+          <div class="card"><h4>Footprint</h4><div class="tbl" id="ofFootprint"></div></div>
+          <div class="card"><h4>Imbalances</h4><div id="ofImbalance"></div></div>
+        </details>
+        <details class="sec"><summary>SMC</summary>
+          <div class="card"><h4>Market Structure</h4><div id="smcStruct"></div></div>
+          <div class="card"><h4>Order Blocks</h4><div id="smcOB"></div></div>
+          <div class="card"><h4>Fair Value Gaps</h4><div id="smcFVG"></div></div>
+        </details>
+        <details class="sec"><summary>ICT</summary>
+          <div class="card"><h4>ICT Concepts</h4><div id="ictList"></div></div>
+          <div class="card"><h4>Killzones</h4><div id="ictKill"></div></div>
+        </details>
+        <details class="sec"><summary>WYCKOFF</summary>
+          <div class="card"><h4>Wyckoff Phase</h4><div id="wyckoffPhase"></div></div>
+          <div class="card"><h4>Volume Analysis</h4><div id="wyckoffVol"></div></div>
+        </details>
+        <details class="sec"><summary>CRT</summary>
+          <div class="card"><h4>Candle Range Theory</h4><div id="crtList"></div></div>
+        </details>
+        <details class="sec"><summary>SUPERTREND</summary>
+          <div class="card"><h4>Supertrend (10, 3)</h4><div id="stList"></div></div>
+        </details>
+        <details class="sec"><summary>ICHIMOKU</summary>
+          <div class="card"><h4>Ichimoku Cloud</h4><div id="ichiList"></div></div>
+        </details>
+        <details class="sec"><summary>PIVOT</summary>
+          <div class="card"><h4>Classic Pivot</h4><div id="pivotClassic"></div></div>
+          <div class="card"><h4>Fibonacci Pivot</h4><div id="pivotFib"></div></div>
+        </details>
+        <details class="sec"><summary>FIB</summary>
+          <div class="card"><h4>Fibonacci Retracement</h4><div id="fibList"></div></div>
+        </details>
+        <details class="sec"><summary>VOLUME</summary>
+          <div class="card"><h4>Volume Profile</h4><div id="volProfile"></div></div>
+          <div class="card"><h4>Current Bar</h4><div id="volCurrent"></div></div>
+        </details>
+        <details class="sec"><summary>CVD</summary>
+          <div class="card"><h4>Spot CVD</h4><div id="cvdSpot"></div></div>
+          <div class="card"><h4>Futures CVD</h4><div id="cvdFutures"></div></div>
+          <div class="card"><h4>Divergence</h4><div id="cvdDivergence"></div></div>
+        </details>
+      </div>
+
       <div class="pane" id="p-liqmap">
         <div class="card"><h4>◆ Selected Price Level</h4><div id="liqPickedPrice" class="liqBig">Tap chart</div><div id="liqPickedInfo" style="color:#848e9c;font-size:10px;text-align:center;margin-top:4px"></div></div>
         <div class="card"><h4>◆ Estimated Liquidations</h4><div class="liqBar"><div class="l" id="liqBarLong" style="width:50%"></div><div class="s" id="liqBarShort" style="width:50%"></div></div><div id="liqEstimates"></div></div>
@@ -289,6 +348,7 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
         <div class="card"><h4>◆ Liquidation Density</h4><div id="liqDensity" style="max-height:260px;overflow-y:auto"></div></div>
         <div class="card"><h4>◆ Open Interest & Funding</h4><div id="liqOI"></div></div>
       </div>
+
       <div class="pane" id="p-whales">
         <div class="card">
           <h4>◆ Live Whale Transactions</h4>
@@ -296,32 +356,27 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
         </div>
         <div class="card"><h4>◆ Whale Flow Summary</h4><div id="whaleSummary"></div></div>
       </div>
+
       <div class="pane" id="p-etf">
         <div class="card"><h4>◆ US Spot ETF Flows</h4><div id="etfList"></div></div>
         <div class="card"><h4>◆ Total Net Flow</h4><div id="etfTotal"></div></div>
       </div>
-      <div class="pane" id="p-orderflow">
-        <div class="card"><h4>Buy / Sell Pressure</h4><div id="ofSummary"></div></div>
-        <div class="card"><h4>Footprint</h4><div class="tbl" id="ofFootprint"></div></div>
-        <div class="card"><h4>Imbalances</h4><div id="ofImbalance"></div></div>
+
+      <div class="pane" id="p-world">
+        <div class="card">
+          <h4>◆ Global Flow Map</h4>
+          <canvas id="worldCv" width="720" height="380"></canvas>
+          <div style="color:#848e9c;font-size:10px;line-height:1.5;margin-top:6px"><b style="color:#26a69a">Green hub</b> = net buying (last 48h, this coin, in that region's trading session). <b style="color:#ef5350">Red hub</b> = net selling. Bigger = more volume. Blue dots = live Bitcoin nodes. Exchanges do not publish trader locations, so hubs use session-time order flow as a proxy.</div>
+        </div>
+        <div class="card"><h4>◆ Session Flow</h4><div id="worldTbl"></div></div>
       </div>
-      <div class="pane" id="p-smc">
-        <div class="card"><h4>Market Structure</h4><div id="smcStruct"></div></div>
-        <div class="card"><h4>Order Blocks</h4><div id="smcOB"></div></div>
-        <div class="card"><h4>Fair Value Gaps</h4><div id="smcFVG"></div></div>
-      </div>
-      <div class="pane" id="p-ict"><div class="card"><h4>ICT Concepts</h4><div id="ictList"></div></div><div class="card"><h4>Killzones</h4><div id="ictKill"></div></div></div>
-      <div class="pane" id="p-wyckoff"><div class="card"><h4>Wyckoff Phase</h4><div id="wyckoffPhase"></div></div><div class="card"><h4>Volume Analysis</h4><div id="wyckoffVol"></div></div></div>
-      <div class="pane" id="p-crt"><div class="card"><h4>Candle Range Theory</h4><div id="crtList"></div></div></div>
-      <div class="pane" id="p-supertrend"><div class="card"><h4>Supertrend (10, 3)</h4><div id="stList"></div></div></div>
-      <div class="pane" id="p-ichimoku"><div class="card"><h4>Ichimoku Cloud</h4><div id="ichiList"></div></div></div>
-      <div class="pane" id="p-pivot"><div class="card"><h4>Classic Pivot</h4><div id="pivotClassic"></div></div><div class="card"><h4>Fibonacci Pivot</h4><div id="pivotFib"></div></div></div>
-      <div class="pane" id="p-fib"><div class="card"><h4>Fibonacci Retracement</h4><div id="fibList"></div></div></div>
-      <div class="pane" id="p-volume"><div class="card"><h4>Volume Profile</h4><div id="volProfile"></div></div><div class="card"><h4>Current Bar</h4><div id="volCurrent"></div></div></div>
-      <div class="pane" id="p-cvd"><div class="card"><h4>Spot CVD</h4><div id="cvdSpot"></div></div><div class="card"><h4>Futures CVD</h4><div id="cvdFutures"></div></div><div class="card"><h4>Divergence</h4><div id="cvdDivergence"></div></div></div>
+
       <div class="pane" id="p-liq"><div class="card"><h4>Live Liquidations (15m)</h4><div id="liqSummary"></div></div><div class="card"><h4>Largest Events</h4><div id="liqRecent"></div></div></div>
+
       <div class="pane" id="p-mtf"><div class="card"><h4>Multi-Timeframe Trend</h4><div class="mtfGrid" id="mtfGrid"></div></div></div>
+
       <div class="pane" id="p-sessions"><div class="card"><h4>Current Session (UTC)</h4><div id="sessCurrent"></div></div><div class="card"><h4>Windows</h4><div id="sessList"></div></div></div>
+
       <div class="pane" id="p-scanner">
         <div class="card">
           <h4>Signal Scanner (50 coins)</h4>
@@ -334,7 +389,9 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
           <div id="scannerResult"></div>
         </div>
       </div>
+
       <div class="pane" id="p-heatmap"><div class="card"><h4>Live Heatmap (50 coins)</h4><div class="hmGrid" id="heatGrid"></div></div></div>
+
       <div class="pane" id="p-signals">
         <div class="card">
           <h4>◆ Signal Engine Controls</h4>
@@ -354,6 +411,7 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
         </div>
         <div class="card"><h4>◆ Live Signal Feed</h4><div id="signalFeed"></div></div>
       </div>
+
       <div class="pane" id="p-alerts">
         <div class="card">
           <h4>Price Alert</h4>
@@ -362,27 +420,18 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
           <div id="alertList"></div>
         </div>
       </div>
+
     </div>
   </div>
   <div id="tabBar">
     <button class="tab on" data-t="ai">AI</button>
     <button class="tab" data-t="analysis">ANALYSIS</button>
-    <button class="tab" data-t="structure">STRUCTURE</button>
     <button class="tab" data-t="patterns">PATTERNS W/M</button>
+    <button class="tab" data-t="pro">PRO TOOLS</button>
     <button class="tab" data-t="liqmap">LIQ MAP</button>
     <button class="tab" data-t="whales">WHALES</button>
     <button class="tab" data-t="etf">ETF</button>
-    <button class="tab" data-t="orderflow">ORDER FLOW</button>
-    <button class="tab" data-t="smc">SMC</button>
-    <button class="tab" data-t="ict">ICT</button>
-    <button class="tab" data-t="wyckoff">WYCKOFF</button>
-    <button class="tab" data-t="crt">CRT</button>
-    <button class="tab" data-t="supertrend">SUPERTREND</button>
-    <button class="tab" data-t="ichimoku">ICHIMOKU</button>
-    <button class="tab" data-t="pivot">PIVOT</button>
-    <button class="tab" data-t="fib">FIB</button>
-    <button class="tab" data-t="volume">VOLUME</button>
-    <button class="tab" data-t="cvd">CVD</button>
+    <button class="tab" data-t="world">WORLD MAP</button>
     <button class="tab" data-t="liq">LIQUIDATIONS</button>
     <button class="tab" data-t="mtf">MULTI-TF</button>
     <button class="tab" data-t="sessions">SESSIONS</button>
@@ -392,7 +441,6 @@ html,body{height:100%;background:#0b0e11;color:#eaecef;font-family:-apple-system
     <button class="tab" data-t="alerts">ALERTS</button>
   </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 "use strict";
@@ -485,6 +533,7 @@ const baseOpts = {
   crosshair:{mode:0}
 };
 let chart, candleSeries, ema20Series, ema50Series, ema200Series, vwapSeries, volSeries;
+let bbU, bbM, bbL, stS;
 
 function initChart(){
   chart = LightweightCharts.createChart(chartEl, {...baseOpts, width:chartEl.clientWidth||600, height:chartEl.clientHeight||400});
@@ -495,6 +544,17 @@ function initChart(){
   vwapSeries = chart.addLineSeries({color:'#00bcd4',lineWidth:1,lineStyle:3,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
   volSeries = chart.addHistogramSeries({priceFormat:{type:'volume'}, priceScaleId:'v',priceLineVisible:false, lastValueVisible:false});
   chart.priceScale('v').applyOptions({scaleMargins:{top:0.85, bottom:0}});
+
+  /* Overlays: Bollinger Bands + Supertrend (hidden until toggled) */
+  const mkLine = (color, w) => chart.addLineSeries({color:color,lineWidth:w||1,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false,visible:false});
+  bbU = mkLine('#78909c'); bbM = mkLine('#546e7a'); bbL = mkLine('#78909c'); stS = mkLine('#26a69a',2);
+  const bindOverlay = (id, arr) => {
+    const b = $(id); if(!b) return;
+    b.onclick = () => { b.classList.toggle('on'); const on = b.classList.contains('on'); arr.forEach(s => s.applyOptions({visible:on})); };
+  };
+  bindOverlay('bbBtn', [bbU,bbM,bbL]);
+  bindOverlay('stBtn', [stS]);
+
   chart.subscribeClick(param=>{
     if(!liqTapMode || !param || param.point==null) return;
     try{
@@ -779,7 +839,6 @@ function wyckoffPhase(c){ if(c.length<60) return {phase:'—',avgVol:1,recentVol
 function crtState(c){ const r=c.slice(-40).map(x=>x.high-x.low); const recent=r.slice(-10).reduce((a,b)=>a+b,0)/10; const prior=r.slice(-30,-10).reduce((a,b)=>a+b,0)/20; if(recent<prior*0.65) return {state:'Contraction',note:'Range compressing'}; if(recent>prior*1.5) return {state:'Expansion',note:'Range expanding'}; return {state:'Normal',note:'Range within normal bounds'}; }
 const SESSIONS = [{name:'Asian',start:0,end:8},{name:'London',start:7,end:16},{name:'NY AM',start:13,end:17},{name:'NY PM',start:17,end:21},{name:'London Close',start:15,end:17}];
 function currentSession(){ const h=new Date().getUTCHours(); for(const s of SESSIONS){ if(h>=s.start&&h<s.end) return s; } return null; }
-  
 /* ============================================================
    UI SETUP
    ============================================================ */
@@ -894,6 +953,17 @@ function drawIndicators(){
   ema50Series.setData(candles.map((c,i)=>e50[i]!=null?{time:c.time,value:e50[i]}:null).filter(Boolean));
   ema200Series.setData(candles.map((c,i)=>e200[i]!=null?{time:c.time,value:e200[i]}:null).filter(Boolean));
   vwapSeries.setData(candles.map((c,i)=>vw[i]!=null?{time:c.time,value:vw[i]}:null).filter(Boolean));
+
+  /* Bollinger Bands + Supertrend overlays */
+  if(candles.length>=30 && bbU){
+    const m = sma(closes,20), sd = stdev(closes,20);
+    const line = f => candles.map((c,i)=>m[i]!=null?{time:c.time,value:f(m[i],sd[i])}:null).filter(Boolean);
+    bbU.setData(line((a,s)=>a+2*s));
+    bbM.setData(line(a=>a));
+    bbL.setData(line((a,s)=>a-2*s));
+    const st = supertrend(candles,10,3);
+    stS.setData(candles.map((c,i)=>st.trend[i]!=null?{time:c.time,value:st.trend[i],color:st.direction[i]===1?'#26a69a':'#ef5350'}:null).filter(Boolean));
+  }
 }
 function drawChartLevels(){
   clearChartLines();
@@ -946,8 +1016,7 @@ function startSpotAgg(sym){
       spotCvdTotal += (d.m?-qty:qty);
       if(spotCvdSeries.length && spotCvdSeries[spotCvdSeries.length-1].time===key) spotCvdSeries[spotCvdSeries.length-1].value = spotCvdTotal;
       else { spotCvdSeries.push({time:key,value:spotCvdTotal}); if(spotCvdSeries.length>500) spotCvdSeries.shift(); }
-      if(activeTab==='orderflow') renderOrderFlow();
-      if(activeTab==='cvd') renderCVD();
+      if(activeTab==='pro'){ renderOrderFlow(); renderCVD(); }
     }catch(err){}
   };
 }
@@ -963,7 +1032,7 @@ function startFuturesCvd(sym){
       futCvdTotal += (d.m?-qty:qty);
       if(futCvdSeries.length && futCvdSeries[futCvdSeries.length-1].time===key) futCvdSeries[futCvdSeries.length-1].value = futCvdTotal;
       else { futCvdSeries.push({time:key,value:futCvdTotal}); if(futCvdSeries.length>500) futCvdSeries.shift(); }
-      if(activeTab==='cvd') renderCVD();
+      if(activeTab==='pro') renderCVD();
     }catch(err){}
   };
 }
@@ -1010,6 +1079,7 @@ function openTab(name){
   setTimeout(resizeCharts, 50);
   if(name==='whales') fetchWhales();
   if(name==='etf') fetchETF();
+  if(name==='world') renderWorld();
 }
 async function fetchOI(){
   try{ const r = await fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol='+currentSym); const j = await r.json(); const oi = parseFloat(j.openInterest); const cur = tickerData[currentSym]; const px = cur?cur.price:(candles.length?candles[candles.length-1].close:0); oiUSDGlobal = oi*px; } catch(e){ oiUSDGlobal = null; }
@@ -1392,7 +1462,7 @@ function drawTrendlinesOnChart(){
     try{
       const line = candleSeries.createPriceLine({
         price: tl.projected, color: color, lineWidth: 1, lineStyle: 2,
-        axisLabelVisible: false, title: tl.dir === 'up' ? 'TL' : 'TL'
+        axisLabelVisible: false, title: 'TL'
       });
       tlLines.push(line);
     }catch(e){}
@@ -1489,7 +1559,6 @@ async function scanPatternsFull(){
     return;
   }
 
-  /* Sort: breakouts first, then forming */
   results.sort((a,b) => {
     const aBr = a.data.breakout ? 1 : 0;
     const bBr = b.data.breakout ? 1 : 0;
@@ -1497,7 +1566,6 @@ async function scanPatternsFull(){
   });
 
   let html = '';
-  /* Group W patterns */
   const wResults = results.filter(r => r.pattern === 'W');
   const mResults = results.filter(r => r.pattern === 'M');
   const tlBreakResults = results.filter(r => r.pattern === 'TL');
@@ -2091,6 +2159,90 @@ function renderAlerts(){
 setInterval(checkAlerts, 2000);
 setInterval(()=>{ if(activeTab==='heatmap') renderHeatmap(); }, 3000);
 
+/* ============================================================
+   WORLD MAP ENGINE
+   ============================================================ */
+const HUBS = {
+  'Asia':[['Tokyo',35.7,139.7],['Hong Kong',22.3,114.2],['Singapore',1.35,103.8],['Seoul',37.5,127]],
+  'London':[['London',51.5,-0.1],['Frankfurt',50.1,8.7],['Dubai',25.2,55.3]],
+  'New York':[['New York',40.7,-74],['Chicago',41.9,-87.6],['Toronto',43.7,-79.4]]
+};
+function sessOf(h){ return h<8?'Asia':h<13?'London':h<21?'New York':'Asia'; }
+let landGeo = null, nodePts = null, worldBusy = false;
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+async function loadLand(){
+  if(landGeo) return;
+  try{
+    if(!window.topojson) await loadScript('https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js');
+    const w = await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')).json();
+    landGeo = topojson.feature(w, w.objects.countries).features;
+  }catch(e){ landGeo = []; }
+}
+async function loadNodes(){
+  if(nodePts) return;
+  nodePts = [];
+  try{
+    const r = await fetch('https://bitnodes.io/api/v1/snapshots/latest/');
+    const j = await r.json(); let i = 0;
+    for(const k in j.nodes){ const v = j.nodes[k]; if(v[8]!=null && v[9]!=null && (i++%2===0)) nodePts.push([v[8],v[9]]); }
+  }catch(e){}
+}
+async function sessionFlow(){
+  const k = await fetchKlines(currentSym,'15m',192);
+  const o = {'Asia':{b:0,s:0},'London':{b:0,s:0},'New York':{b:0,s:0}};
+  k.forEach(c=>{
+    const rg = (c.high-c.low)||1e-9;
+    const buy = c.volume*((c.close-c.low)/rg)*c.close;
+    const tot = c.volume*c.close;
+    const s = o[sessOf(new Date(c.time*1000).getUTCHours())];
+    s.b += buy; s.s += tot-buy;
+  });
+  return o;
+}
+async function renderWorld(){
+  if(worldBusy) return; worldBusy = true;
+  try{
+    const cv = $('worldCv'), g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    const X = lon => (lon+180)/360*W, Y = lat => (90-lat)/180*H;
+    const results = await Promise.all([sessionFlow(), loadLand(), loadNodes()]);
+    const flow = results[0];
+    g.clearRect(0,0,W,H); g.fillStyle = '#0b0e11'; g.fillRect(0,0,W,H);
+    g.fillStyle = '#161b26'; g.strokeStyle = '#232a38'; g.lineWidth = .6;
+    (landGeo||[]).forEach(f=>{
+      const polys = f.geometry.type==='Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      polys.forEach(p=>p.forEach(ring=>{
+        g.beginPath();
+        ring.forEach(([lo,la],i)=> i ? g.lineTo(X(lo),Y(la)) : g.moveTo(X(lo),Y(la)));
+        g.closePath(); g.fill(); g.stroke();
+      }));
+    });
+    g.fillStyle = 'rgba(41,98,255,.55)';
+    (nodePts||[]).forEach(([la,lo])=>{ g.fillRect(X(lo),Y(la),1.6,1.6); });
+    const maxV = Math.max(...Object.values(flow).map(s=>s.b+s.s),1);
+    const active = sessOf(new Date().getUTCHours());
+    let tbl = '';
+    Object.keys(HUBS).forEach(sn=>{
+      const s = flow[sn], tot = s.b+s.s, d = s.b-s.s, up = d>=0, col = up?'38,166,154':'239,83,80';
+      const r = 6 + 22*Math.sqrt(tot/maxV)/HUBS[sn].length*1.6;
+      HUBS[sn].forEach(([n,la,lo])=>{
+        const x = X(lo), y = Y(la);
+        const gr = g.createRadialGradient(x,y,0,x,y,r*1.8);
+        gr.addColorStop(0,'rgba('+col+',.9)'); gr.addColorStop(1,'rgba('+col+',0)');
+        g.fillStyle = gr; g.beginPath(); g.arc(x,y,r*1.8,0,7); g.fill();
+        g.fillStyle = 'rgb('+col+')'; g.beginPath(); g.arc(x,y,3.5,0,7); g.fill();
+        if(sn===active){ g.strokeStyle = '#f0b90b'; g.lineWidth = 1.5; g.beginPath(); g.arc(x,y,r*.7+5,0,7); g.stroke(); }
+        g.fillStyle = '#eaecef'; g.font = '10px sans-serif'; g.fillText(n,x+7,y-5);
+      });
+      tbl += '<div class="kv"><span class="k">'+sn+(sn===active?' ● live':'')+'</span><span class="v '+(up?'pos':'neg')+'">'+(up?'BUYING ':'SELLING ')+fmtUSD(Math.abs(d))+' / '+fmtUSD(tot)+'</span></div>';
+    });
+    $('worldTbl').innerHTML = tbl + '<div style="color:#848e9c;font-size:10px;margin-top:6px">Coin: '+currentName+' · net delta / total volume, last 48h</div>';
+  }catch(e){ $('worldTbl').innerHTML = '<div style="color:#ef5350;font-size:11px">Map data failed to load. Check connection.</div>'; }
+  worldBusy = false;
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
 function boot(){
   initChart();
   buildDrawer();
@@ -2108,6 +2260,7 @@ function boot(){
   startSignalEngine();
   setInterval(()=>{ if(candles.length) runAllPanes(); }, 6000);
   setInterval(()=>{ if(activeTab==='mtf') renderMTF(); }, 30000);
+  setInterval(()=>{ if(activeTab==='world') renderWorld(); }, 60000);
   setInterval(()=>{ fetchWhales(); }, 120000);
   setInterval(drawTrendlinesOnChart, 15000);
   setTimeout(drawTrendlinesOnChart, 4000);
